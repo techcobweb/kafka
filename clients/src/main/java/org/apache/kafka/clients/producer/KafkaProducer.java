@@ -459,9 +459,13 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             AppInfoParser.registerAppInfo(JMX_PREFIX, clientId, metrics, time.milliseconds());
             log.debug("Kafka producer started");
         } catch (Throwable t) {
-            // call close methods if internal objects are already constructed this is to prevent resource leak. see KAFKA-2121
-            close(Duration.ofMillis(0), true);
-            // now propagate the exception
+            try {
+                // call close methods if internal objects are already constructed this is to prevent resource leak. see KAFKA-2121
+                close(Duration.ofMillis(0), true);
+            } catch(Throwable cleanupThrowable) {
+                // Ignore the cleanup failure, so we can report the original failure.
+            }
+            // now propagate the original exception
             throw new KafkaException("Failed to construct kafka producer", t);
         }
     }
